@@ -32,9 +32,12 @@ if len(releases) == 0:
 main_release = releases[0]
 data    = client.release_data(argv[1], main_release)
 name    = data['name'].lower()
-klass   = "".join(map(str.capitalize, re.findall('[a-zA-Z]+', data['name'])))
 
-filename = "%s/%s.rb" % (tempfile.gettempdir(), name)
+# Prefix with `Pip-` to prevent any name clashes with prefixes from
+# Homebrew formulae (readline is a good example)
+klass   = 'Pip' + "".join(map(str.capitalize, re.findall('[a-zA-Z]+', data['name'])))
+filename = "%s/pip-%s.rb" % (tempfile.gettempdir(), name)
+
 f = open(filename, 'w')
 
 formula_contents = """
@@ -51,7 +54,7 @@ class PipFormula < Formula
   end
 
   def install
-    system "pip", "install", "#{name}==#{version}",
+    system "pip", "install", "%(name)s==#{version}",
       "--install-option=--prefix=#{prefix}"
   end
 end
@@ -61,7 +64,7 @@ class %(klass)s < PipFormula
   version "%(version)s"
   homepage "%(homepage)s"
 end
-""".strip() % {'klass': klass, 'url': data['download_url'], 'homepage': data['home_page'], 'version': data['version']}
+""".strip() % {'klass': klass, 'url': data['download_url'], 'homepage': data['home_page'], 'version': data['version'], 'name': data['name']}
 
 f.write(formula_contents+"\n")
 f.close()
